@@ -36,14 +36,34 @@ public interface Editor {
         return simpleAudioFiler;
     }
 
-    default FFmpegFrameFilter overlayAudioFilter(final FFmpegFrameRecorder recorder) throws FFmpegFrameFilter.Exception {
+    default FFmpegFrameFilter overlayAudioFilter(final int inputs, final FFmpegFrameRecorder recorder) throws FFmpegFrameFilter.Exception {
         final BytePointer sampleFormatName = avutil.av_get_sample_fmt_name(recorder.getSampleFormat());
 
 
         final String aformat = String.format("aformat=%s:sample_rates=%d:channel_layouts=stereo", sampleFormatName.getString(), recorder.getSampleRate());
 
+        final StringBuilder builder = new StringBuilder();
 
-        final FFmpegFrameFilter overlayFilter = FFmpegUtil.configureAudioFilter(String.format("[0:a]volume=2.25, %s[a1]; [1:a]volume=0.25, %s[a2]; [a1][a2]amerge,pan=stereo|c0<c0+c2|c1<c1+c3[a]", aformat, aformat), recorder.getSampleRate(), recorder.getSampleFormat());
+        for (int i = 0; i < inputs; i++) {
+            builder.append("[")
+                    .append(i)
+                    .append(":]")
+                    .append(aformat)
+                    .append("[a")
+                    .append(i)
+                    .append("]")
+                    .append(";");
+        }
+
+        for (int i = 0; i < inputs; i++) {
+            builder.append("[a").append(i).append("]");
+        }
+
+        builder.append("amerge,pan=stereo|c0<c0+c2|c1<c1+c3[a]");
+
+        System.out.println(builder);
+
+        final FFmpegFrameFilter overlayFilter = FFmpegUtil.configureAudioFilter(builder.toString(), recorder.getSampleRate(), recorder.getSampleFormat());
         overlayFilter.setAudioInputs(2);
         overlayFilter.start();
         sampleFormatName.close(); // release reference
