@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.yugata.easy.edits.editor.edit.EditingFlag;
 import de.yugata.easy.edits.editor.preview.PreviewEditor;
+import de.yugata.easy.edits.editor.video.ClipExporter;
 import de.yugata.easy.edits.editor.video.VideoClip;
 import de.yugata.easy.edits.editor.video.VideoEditor;
 import de.yugata.easy.edits.editor.video.VideoEditorBuilder;
@@ -33,17 +34,16 @@ public class FlutterWrapper {
     }
 
     public static void exportSegments(final String json) {
-        final VideoEditor videoEditor = new VideoEditorBuilder()
-                .fromJson(json);
+        final ClipExporter exporter = ClipExporter.fromJson(json);
 
-        videoEditor.writeSegments();
+        exporter.exportClips();
     }
 
     public static void edit(final String json) {
         final VideoEditor videoEditor = new VideoEditorBuilder()
                 .fromJson(json);
 
-        videoEditor.edit(false);
+        videoEditor.edit();
     }
 
     public static String previewSegment(final String json) {
