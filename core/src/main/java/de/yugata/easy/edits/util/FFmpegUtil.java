@@ -132,6 +132,17 @@ public class FFmpegUtil {
         grabber.setOption("allowed_extensions", "ALL");
         grabber.setOption("hwaccel", "cuda");
         grabber.setVideoBitrate(0);
+
+        if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_H265) {
+            grabber.setVideoCodecName("hvec_cuvid");
+        } else if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_H264) {
+            grabber.setVideoCodecName("h264_cuvid");
+        } else if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_NONE) {
+            grabber.setVideoCodecName("h264_cuvid");
+        } else {
+            throw new RuntimeException("Supplied video codec not supported.");
+        }
+
     }
 
 
