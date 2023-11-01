@@ -76,7 +76,7 @@ public class BasicEditor implements Editor {
         final FFmpegFrameFilter simpleAudioFiler = simpleAudioFilter(recorder);
 
         // Audio filter which overlays audio and input audio if there is input audio given.
-        final FFmpegFrameFilter overlayFilter = overlayAudioFilter(recorder);
+        final FFmpegFrameFilter overlayFilter = overlayAudioFilter(5, recorder);
 
         // Filter to convert the supplied audio into the same format & sample rate as the recorder.
         final FFmpegFrameFilter convertAudioFilter = convertAudioFilter(recorder);

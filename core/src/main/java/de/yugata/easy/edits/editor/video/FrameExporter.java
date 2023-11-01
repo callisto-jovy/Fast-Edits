@@ -54,7 +54,7 @@ public class FrameExporter {
 
     public int[] exportFrame(final long timeStamp) {
         if (videoGrabber == null) {
-            return null;
+            return new int[0];
         }
 
         try {
@@ -63,18 +63,18 @@ public class FrameExporter {
             final Frame frame = videoGrabber.grabImage();
 
             if (frame == null) {
-                return null;
+                return new int[0];
             }
 
             final Buffer buffer = frame.image[0];
+
             ByteBuffer byteBuffer = ByteBuffer.allocate(buffer.capacity());
 
-
-            if (buffer instanceof ShortBuffer) {
+            if (buffer instanceof ByteBuffer) {
+                byteBuffer = (ByteBuffer) buffer;
+            } else if (buffer instanceof ShortBuffer) {
                 final ShortBuffer shortBuffer = (ShortBuffer) buffer;
                 byteBuffer.asShortBuffer().put(shortBuffer);
-            } else if (buffer instanceof ByteBuffer) {
-                byteBuffer = (ByteBuffer) buffer;
             } else if (buffer instanceof IntBuffer) {
                 final IntBuffer intBuffer = (IntBuffer) buffer;
                 byteBuffer.asIntBuffer().put(intBuffer);
@@ -89,10 +89,16 @@ public class FrameExporter {
                 byteBuffer.asDoubleBuffer().put(doubleBuffer);
             }
 
-            return byteBuffer.asIntBuffer().array();
+            final int[] ints = new int[buffer.capacity()];
+
+            for (int i = 0; byteBuffer.hasRemaining(); i++) {
+                ints[i] = byteBuffer.get();
+            }
+
+            return ints;
         } catch (FFmpegFrameGrabber.Exception e) {
             e.printStackTrace();
-            return null;
+            return new int[0];
         }
     }
 }
