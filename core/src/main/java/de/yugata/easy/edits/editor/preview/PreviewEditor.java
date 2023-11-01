@@ -91,7 +91,7 @@ public class PreviewEditor implements Editor {
         recorder.setVideoCodecName("h264_nvenc");
     }
 
-    private void configureFrameGrabber(final FFmpegFrameGrabber grabber) {
+    private void configureFrameGrabber(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
         FFmpegUtil.configureGrabber(grabber);
         grabber.setImageWidth(grabber.getImageWidth() / 8);
         grabber.setImageHeight(grabber.getImageHeight() / 8);

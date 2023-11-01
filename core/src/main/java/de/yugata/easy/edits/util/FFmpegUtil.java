@@ -2,19 +2,16 @@ package de.yugata.easy.edits.util;
 
 
 import de.yugata.easy.edits.editor.edit.EditInfo;
-import de.yugata.easy.edits.editor.edit.EditingFlag;
 import de.yugata.easy.edits.filter.Filter;
 import de.yugata.easy.edits.filter.FilterManager;
 import de.yugata.easy.edits.filter.FilterType;
 import org.apache.commons.io.FileUtils;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -127,17 +124,21 @@ public class FFmpegUtil {
     }
 
 
-
-    public static void configureGrabber(final FFmpegFrameGrabber grabber) {
+    public static void configureGrabber(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
         grabber.setOption("allowed_extensions", "ALL");
         grabber.setOption("hwaccel", "cuda");
         grabber.setVideoBitrate(0);
 
-        if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_H265) {
+        // Start, to get the codec.
+        grabber.start();
+        final int codec = grabber.getVideoCodec();
+        grabber.stop();
+
+        if (codec == avcodec.AV_CODEC_ID_H265) {
             grabber.setVideoCodecName("hvec_cuvid");
-        } else if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_H264) {
+        } else if (codec == avcodec.AV_CODEC_ID_H264) {
             grabber.setVideoCodecName("h264_cuvid");
-        } else if (grabber.getVideoCodec() == avcodec.AV_CODEC_ID_NONE) {
+        } else if (codec == avcodec.AV_CODEC_ID_NONE) {
             grabber.setVideoCodecName("h264_cuvid");
         } else {
             throw new RuntimeException("Supplied video codec not supported.");
