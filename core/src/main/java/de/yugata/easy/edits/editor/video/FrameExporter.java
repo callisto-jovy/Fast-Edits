@@ -53,17 +53,13 @@ public class FrameExporter {
     }
 
     public ByteBuffer exportFrame(final long timeStamp) {
-        if (videoGrabber == null) {
-            return null;
-        }
-
         try {
             videoGrabber.setTimestamp(timeStamp);
 
             final Frame frame = videoGrabber.grabImage();
 
             if (frame == null) {
-                return null;
+                throw new RuntimeException("Frame is null");
             }
 
             final Buffer buffer = frame.image[0];
