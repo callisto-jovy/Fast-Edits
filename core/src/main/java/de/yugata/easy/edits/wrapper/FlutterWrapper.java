@@ -11,6 +11,7 @@ import de.yugata.easy.edits.editor.video.*;
 import de.yugata.easy.edits.filter.FilterType;
 import de.yugata.easy.edits.filter.FilterValue;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +46,7 @@ public class FlutterWrapper {
         }
     }
 
-    public static int[] getFrame(final long timeStamp) {
+    public static ByteBuffer getFrame(final long timeStamp) {
         return frameExporter.exportFrame(timeStamp);
     }
 

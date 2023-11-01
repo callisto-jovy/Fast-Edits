@@ -8,9 +8,7 @@ public class VideoClip {
 
     private final long timeStamp;
     private final long length;
-
     private final boolean muteAudio;
-
 
     public VideoClip(final JsonObject jsonElement) {
         this.timeStamp = jsonElement.get("time_stamp").getAsLong();
