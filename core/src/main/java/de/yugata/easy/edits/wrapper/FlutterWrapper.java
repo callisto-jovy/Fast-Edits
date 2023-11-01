@@ -7,10 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.yugata.easy.edits.editor.edit.EditingFlag;
 import de.yugata.easy.edits.editor.preview.PreviewEditor;
-import de.yugata.easy.edits.editor.video.ClipExporter;
-import de.yugata.easy.edits.editor.video.VideoClip;
-import de.yugata.easy.edits.editor.video.VideoEditor;
-import de.yugata.easy.edits.editor.video.VideoEditorBuilder;
+import de.yugata.easy.edits.editor.video.*;
 import de.yugata.easy.edits.filter.FilterType;
 import de.yugata.easy.edits.filter.FilterValue;
 
@@ -24,13 +21,32 @@ import static de.yugata.easy.edits.filter.FilterManager.FILTER_MANAGER;
 
 public class FlutterWrapper {
 
-
     public static List<FlutterFilterWrapper> getFilters() {
         return FILTER_MANAGER.getAvailableFilters();
     }
 
     public static Map<String, String> getEditingFlags() {
         return Arrays.stream(EditingFlag.values()).collect(Collectors.groupingBy(Enum::name, Collectors.mapping(EditingFlag::getDescription, Collectors.joining())));
+    }
+
+    // Stashed instance
+    private static FrameExporter frameExporter;
+
+    public static void initFrameExport(final String source) {
+        if (frameExporter == null) {
+            frameExporter = new FrameExporter(source);
+        }
+    }
+
+    public static void stopFrameExport() {
+        if (frameExporter != null) {
+            frameExporter.destroyGrabber();
+            frameExporter = null;
+        }
+    }
+
+    public static int[] getFrame(final long timeStamp) {
+        return frameExporter.exportFrame(timeStamp);
     }
 
     public static void exportSegments(final String json) {

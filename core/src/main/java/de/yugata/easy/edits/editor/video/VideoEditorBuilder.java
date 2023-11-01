@@ -17,9 +17,6 @@ public class VideoEditorBuilder {
     private File outputFile;
     private List<VideoClip> videoClips = new ArrayList<>();
     private EnumSet<EditingFlag> flags = EnumSet.noneOf(EditingFlag.class);
-
-    private long introStart = -1, introEnd = -1;
-
     private File workingDirectory;
 
 
@@ -50,16 +47,6 @@ public class VideoEditorBuilder {
 
     public VideoEditorBuilder setFilters(List<FilterWrapper> filters) {
         this.filters = filters;
-        return this;
-    }
-
-    public VideoEditorBuilder setIntroStart(long introStart) {
-        this.introStart = introStart;
-        return this;
-    }
-
-    public VideoEditorBuilder setIntroEnd(long introEnd) {
-        this.introEnd = introEnd;
         return this;
     }
 
@@ -97,22 +84,18 @@ public class VideoEditorBuilder {
         final String outputPath = root.get("output_path").getAsString();
         final String workingPath = root.get("working_path").getAsString();
 
-        final long introStart = editorState.get("intro_start").getAsLong(), introEnd = editorState.get("intro_end").getAsLong();
-
         return setVideoPath(sourceVideo)
                 .setWorkingDirectory(new File(workingPath))
                 .setOutputFile(new File(outputPath))
                 .setAudioPath(sourceAudio)
                 .setFilters(mappedFilters)
                 .setFlags(mappedEditingFlags)
-                .setIntroStart(introStart)
-                .setIntroEnd(introEnd)
                 .setVideoClips(mappedVideoClips)
                 .createVideoEditor();
     }
 
 
     public VideoEditor createVideoEditor() {
-        return new VideoEditor(videoPath, audioPath, outputFile, videoClips, flags, filters, introStart, introEnd, workingDirectory);
+        return new VideoEditor(videoPath, audioPath, outputFile, videoClips, flags, filters, workingDirectory);
     }
 }

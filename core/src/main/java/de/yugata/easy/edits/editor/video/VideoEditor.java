@@ -64,8 +64,6 @@ public class VideoEditor implements Editor {
                        final List<VideoClip> videoClips,
                        final EnumSet<EditingFlag> flags,
                        final List<FilterWrapper> filters,
-                       final long introStart,
-                       final long introEnd,
                        final File workingDirectory) {
 
         this.videoPath = videoPath;
@@ -109,7 +107,6 @@ public class VideoEditor implements Editor {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     /**
@@ -299,7 +296,7 @@ public class VideoEditor implements Editor {
             final FFmpegFrameFilter simpleAudioFiler = simpleAudioFilter(recorder);
 
             // Audio filter which overlays audio and input audio if there is input audio given.
-            final FFmpegFrameFilter overlayFilter = overlayAudioFilter(recorder);
+            final FFmpegFrameFilter overlayFilter = overlayAudioFilter(5, recorder);
 
             // Filter to convert the supplied audio into the same format & sample rate as the recorder.
             final FFmpegFrameFilter convertAudioFilter = convertAudioFilter(recorder);
@@ -314,9 +311,9 @@ public class VideoEditor implements Editor {
 
             /* video clip loop */
 
-            for (final String inputPath : segmentPaths) {
+            for (final VideoClip videoClip : videoClips) {
                 // grabber for the individual clip segment
-                final FFmpegFrameGrabber segmentGrabber = baseSegmentGrabber(new File(inputPath), recorder, "h265_cuvid");
+                final FFmpegFrameGrabber segmentGrabber = baseSegmentGrabber(new File(""), recorder, "h265_cuvid");
 
                 // Optional: Populate the transition filters, we have to reconfigure them every time, as the offsets depend on it.
                 final FFmpegFrameFilter transitionFilter = FFmpegUtil.populateTransitionFilters(editInfo);

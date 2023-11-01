@@ -35,7 +35,7 @@ public class ClipExporter {
     private final String inputPath;
 
     /**
-     * EnumSet of flags for the exporting process.
+     * EnumSet of flags for the exporting process.#
      */
     private final EnumSet<EditingFlag> editingFlags;
 

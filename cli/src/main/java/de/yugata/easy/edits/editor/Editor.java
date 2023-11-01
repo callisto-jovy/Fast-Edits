@@ -99,11 +99,10 @@ public class Editor {
                 .setIntroStart(introStart)
                 .setFilters(filterWrappers)
                 .setIntroEnd(intoEnd)
-                .setTimeBetweenBeats(new ArrayDeque<>(timeBetweenBeats))
                 .setVideoClips(new ArrayList<>(timeStamps))
                 .createVideoEditor();
 
-        editor.edit(false);
+        editor.edit();
     }
 
 
