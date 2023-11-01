@@ -4,8 +4,13 @@ import de.yugata.easy.edits.util.FFmpegUtil;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
+import org.bytedeco.javacv.Java2DFrameUtils;
 
-import java.nio.*;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class FrameExporter {
 
@@ -62,33 +67,17 @@ public class FrameExporter {
                 throw new RuntimeException("Frame is null");
             }
 
-            final Buffer buffer = frame.image[0];
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(buffer.capacity());
+            final BufferedImage bufferedImage = Java2DFrameUtils.toBufferedImage(frame);
+            ImageIO.write(bufferedImage, "JPEG", byteArrayOutputStream);
 
-            if (buffer instanceof ByteBuffer) {
-                byteBuffer = (ByteBuffer) buffer;
-            } else if (buffer instanceof ShortBuffer) {
-                final ShortBuffer shortBuffer = (ShortBuffer) buffer;
-                byteBuffer.asShortBuffer().put(shortBuffer);
-            } else if (buffer instanceof IntBuffer) {
-                final IntBuffer intBuffer = (IntBuffer) buffer;
-                byteBuffer.asIntBuffer().put(intBuffer);
-            } else if (buffer instanceof LongBuffer) {
-                final LongBuffer longBuffer = (LongBuffer) buffer;
-                byteBuffer.asLongBuffer().put(longBuffer);
-            } else if (buffer instanceof FloatBuffer) {
-                final FloatBuffer floatBuffer = (FloatBuffer) buffer;
-                byteBuffer.asFloatBuffer().put(floatBuffer);
-            } else if (buffer instanceof DoubleBuffer) {
-                final DoubleBuffer doubleBuffer = (DoubleBuffer) buffer;
-                byteBuffer.asDoubleBuffer().put(doubleBuffer);
-            }
-
-            return byteBuffer;
+            return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
         } catch (FFmpegFrameGrabber.Exception e) {
             e.printStackTrace();
             return null;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
