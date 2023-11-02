@@ -9,20 +9,23 @@ import org.bytedeco.javacv.Java2DFrameUtils;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class FrameExporter {
 
-    private final String source;
+    private final String source, workingPath;
 
     /**
      * The {@see FrameGrabber} which grabs the input video
      */
     private FFmpegFrameGrabber videoGrabber;
 
-    public FrameExporter(final String source) {
+    public FrameExporter(final String source, final String workingPath) {
         this.source = source;
+        this.workingPath = workingPath;
         this.initFrameGrabber();
     }
 
@@ -59,6 +62,25 @@ public class FrameExporter {
 
     public ByteBuffer exportFrame(final long timeStamp) {
         try {
+            final String identifier = source + timeStamp + ".jpeg";
+
+            final File workingDir = new File(workingPath);
+
+            if (!workingDir.exists()) {
+                workingDir.mkdirs();
+            }
+
+            final File output = new File(workingDir, identifier);
+
+            if (output.exists()) {
+                final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                try (final FileInputStream fileInputStream = new FileInputStream(output)) {
+                    fileInputStream.transferTo(byteArrayOutputStream);
+                }
+
+                return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
+            }
+
             videoGrabber.setTimestamp(timeStamp);
 
             final Frame frame = videoGrabber.grabImage();

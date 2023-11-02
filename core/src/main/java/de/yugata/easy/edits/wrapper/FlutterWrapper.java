@@ -33,9 +33,9 @@ public class FlutterWrapper {
     // Stashed instance
     private static FrameExporter frameExporter;
 
-    public static void initFrameExport(final String source) {
+    public static void initFrameExport(final String source, final String workingDirectory) {
         if (frameExporter == null) {
-            frameExporter = new FrameExporter(source);
+            frameExporter = new FrameExporter(source, workingDirectory);
         }
     }
 
