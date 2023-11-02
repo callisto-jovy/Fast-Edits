@@ -92,6 +92,7 @@ public class FrameExporter {
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
             final BufferedImage bufferedImage = Java2DFrameUtils.toBufferedImage(frame);
+            ImageIO.write(bufferedImage, "JPEG", output);
             ImageIO.write(bufferedImage, "JPEG", byteArrayOutputStream);
 
             return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
