@@ -6,13 +6,15 @@ import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
 import org.bytedeco.javacv.Java2DFrameUtils;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 
 public class FrameExporter {
 
@@ -62,7 +64,7 @@ public class FrameExporter {
 
     public ByteBuffer exportFrame(final long timeStamp) {
         try {
-            final String identifier = source + timeStamp + ".jpeg";
+            final String identifier = new File(source).getName() + timeStamp + ".jpeg";
 
             final File workingDir = new File(workingPath);
 
@@ -89,13 +91,40 @@ public class FrameExporter {
                 throw new RuntimeException("Frame is null");
             }
 
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
             final BufferedImage bufferedImage = Java2DFrameUtils.toBufferedImage(frame);
-            ImageIO.write(bufferedImage, "JPEG", output);
-            ImageIO.write(bufferedImage, "JPEG", byteArrayOutputStream);
 
-            return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
+            final ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+
+            try (final ImageOutputStream outputStream = ImageIO.createImageOutputStream(compressed)) {
+
+                // NOTE: The rest of the code is just a cleaned up version of your code
+
+                // Obtain writer for JPEG format
+                final ImageWriter jpgWriter = ImageIO.getImageWritersByFormatName("JPEG").next();
+
+                // Configure JPEG compression: 30% quality
+                final ImageWriteParam jpgWriteParam = jpgWriter.getDefaultWriteParam();
+                jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                jpgWriteParam.setCompressionQuality(0.3f);
+
+                // Set your in-memory stream as the output
+                jpgWriter.setOutput(outputStream);
+
+                // Write image as JPEG w/configured settings to the in-memory stream
+                // (the IIOImage is just an aggregator object, allowing you to associate
+                // thumbnails and metadata to the image, it "does" nothing)
+                jpgWriter.write(null, new IIOImage(bufferedImage, null, null), jpgWriteParam);
+
+                // Dispose the writer to free resources
+                jpgWriter.dispose();
+            }
+
+            // Write to file
+            try (final FileOutputStream fileOutputStream = new FileOutputStream(output)) {
+                compressed.writeTo(fileOutputStream);
+            }
+
+            return ByteBuffer.wrap(compressed.toByteArray());
         } catch (FFmpegFrameGrabber.Exception e) {
             e.printStackTrace();
             return null;
