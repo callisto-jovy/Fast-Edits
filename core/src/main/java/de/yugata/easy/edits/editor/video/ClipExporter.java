@@ -55,9 +55,9 @@ public class ClipExporter {
     public static ClipExporter fromJson(final String json) {
         final JsonObject root = JsonParser.parseString(json).getAsJsonObject();
 
-        final String inputPath = root.get("input_path").getAsString();
+        final String inputPath = root.get("source_video").getAsString();
 
-        final String outputDirPath = root.get("working_directory").getAsString();
+        final String outputDirPath = root.get("output_path").getAsString();
 
         final JsonArray videoClips = root.getAsJsonArray("video_clips");
         final List<VideoClip> mappedVideoClips = new ArrayList<>();
