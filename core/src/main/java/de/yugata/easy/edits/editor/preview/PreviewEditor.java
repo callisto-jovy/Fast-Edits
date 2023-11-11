@@ -92,7 +92,7 @@ public class PreviewEditor implements Editor {
     }
 
     private void configureFrameGrabber(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
-        FFmpegUtil.configureGrabber(grabber);
+        FFmpegUtil.configureDecoder(grabber);
         grabber.setImageWidth(grabber.getImageWidth() / 8);
         grabber.setImageHeight(grabber.getImageHeight() / 8);
         grabber.setVideoCodecName("hevc_cuvid");

@@ -97,7 +97,7 @@ public class ClipExporter {
             recorder.setVideoQuality(12);
             recorder.setVideoOption("cq", "12");
             recorder.setOption("preset", "slow");
-            recorder.setVideoOption("profile", "main10");
+            //    recorder.setVideoOption("profile", "main10");
             recorder.setVideoOption("crf", "12");
             recorder.setOption("tune", "hq");
             recorder.setOption("bf", "2");
@@ -116,9 +116,9 @@ public class ClipExporter {
     public void exportClips() {
         try {
             // Frame grabber to navigate & grab the selected clips.
-            final FFmpegFrameGrabber inputGrabber = new FFmpegFrameGrabber(inputPath);
-            FFmpegUtil.configureGrabber(inputGrabber);
-            inputGrabber.start();
+            final FFmpegFrameGrabber input = new FFmpegFrameGrabber(inputPath);
+            FFmpegUtil.configureDecoder(input);
+            input.start();
 
             // List of sorted video clips, so the input grabber only has to move forwards in the stream.
             final List<VideoClip> sortedVideoClips = new ArrayList<>(videoClips);
@@ -132,7 +132,7 @@ public class ClipExporter {
                 final File segmentFile = new File(outputDirectory, String.format("segment %d.mp4", segmentPosition));
 
                 // Recorder for the segment file. Configured in the same way the final recorder is configured, as to not lose quality.
-                final FFmpegFrameRecorder recorder = createRecorder(segmentFile, inputGrabber);
+                final FFmpegFrameRecorder recorder = createRecorder(segmentFile, input);
 
                 final FFmpegFrameFilter[] filters;
                 // Filters that might be applied if the flag is enabled.
@@ -142,13 +142,13 @@ public class ClipExporter {
 
                     // I hate this.
                     final EditInfo editInfo = new EditInfoBuilder()
-                            .setAspectRatio(inputGrabber.getAspectRatio())
-                            .setFrameRate(inputGrabber.getFrameRate())
-                            .setImageHeight(inputGrabber.getImageHeight())
-                            .setImageWidth(inputGrabber.getImageWidth())
-                            .setVideoBitrate(inputGrabber.getVideoBitrate())
-                            .setVideoCodec(inputGrabber.getVideoCodec())
-                            .setVideoCodecName(inputGrabber.getVideoCodecName())
+                            .setAspectRatio(input.getAspectRatio())
+                            .setFrameRate(input.getFrameRate())
+                            .setImageHeight(input.getImageHeight())
+                            .setImageWidth(input.getImageWidth())
+                            .setVideoBitrate(input.getVideoBitrate())
+                            .setVideoCodec(input.getVideoCodec())
+                            .setVideoCodecName(input.getVideoCodecName())
                             .setPixelFormat(recorder.getPixelFormat())
                             .createEditInfo();
 
@@ -158,12 +158,18 @@ public class ClipExporter {
                 }
 
                 // Navigate to the clip.
-                inputGrabber.setVideoTimestamp(videoClip.getTimeStamp());
+                input.setVideoTimestamp(videoClip.getTimeStamp());
+
+                // The end of the clip in microseconds, e.g. stamp + length
+                final long endMicros = videoClip.getTimeStamp() + videoClip.getLength() + 1500000L; //1.5s (see: https://github.com/bytedeco/javacv/issues/1333)
 
                 Frame frame;
-                while ((frame = inputGrabber.grab()) != null && (inputGrabber.getTimestamp() - videoClip.getTimeStamp()) <= videoClip.getLength()) {
-                    FFmpegUtil.pushToFilters(frame, recorder, filters);
+                while (input.getTimestamp() <= endMicros && (frame = input.grab()) != null) {
+                    // See https://github.com/bytedeco/javacv/issues/1333
+                    if (frame.timestamp >= videoClip.getTimeStamp() && frame.timestamp <= endMicros)
+                        FFmpegUtil.pushToFilters(frame, recorder, filters);
                 }
+
 
                 // Close the filter(s) if there are any.
                 for (final FFmpegFrameFilter filter : filters) {
@@ -174,7 +180,7 @@ public class ClipExporter {
                 recorder.close();
             }   /* End video clip loop */
 
-            inputGrabber.close(); // Close the input grabber, free the resources.
+            input.close(); // Close the input grabber, free the resources.
         } catch (FrameGrabber.Exception | FrameFilter.Exception | FrameRecorder.Exception e) {
             e.printStackTrace();
         }

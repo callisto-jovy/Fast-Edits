@@ -71,7 +71,7 @@ public class VideoThread extends Thread {
                 return frame;
             }
         };
-        FFmpegUtil.configureGrabber(frameGrabber);
+        FFmpegUtil.configureDecoder(frameGrabber);
         frameGrabber.setVideoCodecName("hevc_cuvid");
 
         try {

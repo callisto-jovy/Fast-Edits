@@ -124,7 +124,7 @@ public class FFmpegUtil {
     }
 
 
-    public static void configureGrabber(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
+    public static void configureDecoder(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
         grabber.setOption("allowed_extensions", "ALL");
         grabber.setOption("hwaccel", "cuda");
         grabber.setVideoBitrate(0);

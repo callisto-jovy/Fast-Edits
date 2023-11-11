@@ -16,7 +16,7 @@ public interface Editor {
 
     default FFmpegFrameGrabber baseSegmentGrabber(final File input, final FFmpegFrameRecorder recorder, final String videoCodec) throws FFmpegFrameGrabber.Exception {
         final FFmpegFrameGrabber segmentGrabber = new FFmpegFrameGrabber(input);
-        FFmpegUtil.configureGrabber(segmentGrabber);
+        FFmpegUtil.configureDecoder(segmentGrabber);
         segmentGrabber.setSampleFormat(recorder.getSampleFormat());
         segmentGrabber.setSampleRate(recorder.getSampleRate());
         segmentGrabber.setPixelFormat(recorder.getPixelFormat());

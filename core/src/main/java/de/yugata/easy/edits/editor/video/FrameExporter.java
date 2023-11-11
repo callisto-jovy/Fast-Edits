@@ -14,7 +14,6 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 
 public class FrameExporter {
 
@@ -38,7 +37,7 @@ public class FrameExporter {
         if (videoGrabber == null) {
             try {
                 this.videoGrabber = new FFmpegFrameGrabber(source);
-                FFmpegUtil.configureGrabber(videoGrabber);
+                FFmpegUtil.configureDecoder(videoGrabber);
                 videoGrabber.start();
             } catch (FFmpegFrameGrabber.Exception e) {
                 throw new RuntimeException(e);

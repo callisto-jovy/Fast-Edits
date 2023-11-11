@@ -94,7 +94,7 @@ public class VideoEditor implements Editor {
         if (videoGrabber == null) {
             try {
                 this.videoGrabber = new FFmpegFrameGrabber(videoPath);
-                FFmpegUtil.configureGrabber(videoGrabber);
+                FFmpegUtil.configureDecoder(videoGrabber);
                 videoGrabber.start();
 
             } catch (FFmpegFrameGrabber.Exception e) {
