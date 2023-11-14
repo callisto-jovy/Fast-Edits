@@ -2,6 +2,7 @@ package de.yugata.easy.edits.util;
 
 
 import de.yugata.easy.edits.editor.edit.EditInfo;
+import de.yugata.easy.edits.editor.edit.EditingFlag;
 import de.yugata.easy.edits.filter.Filter;
 import de.yugata.easy.edits.filter.FilterManager;
 import de.yugata.easy.edits.filter.FilterType;
@@ -12,6 +13,7 @@ import org.bytedeco.javacv.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -124,22 +126,52 @@ public class FFmpegUtil {
     }
 
 
-    public static void configureDecoder(final FFmpegFrameGrabber grabber) throws FFmpegFrameGrabber.Exception {
-        grabber.setOption("allowed_extensions", "ALL");
-        grabber.setOption("hwaccel", "cuda");
-        grabber.setVideoBitrate(0);
+    public static void configureEncoder(final FFmpegFrameRecorder encoder, final FFmpegFrameGrabber decoder, final EnumSet<EditingFlag> flags) {
+        encoder.setFormat("mkv");
+
+        // Preserve the color range for the HDR video files.
+        // This lets us tone-map the hdr content later on if we want to.
+        //TODO: get this from the decoder
+        if (flags.contains(EditingFlag.WRITE_HDR_OPTIONS)) {
+            encoder.setVideoOption("color_range", "tv");
+            encoder.setVideoOption("colorspace", "bt2020nc");
+            encoder.setVideoOption("color_primaries", "bt2020");
+            encoder.setVideoOption("color_trc", "smpte2084");
+        }
+
+        // best quality --> Produces big files
+        if (flags.contains(EditingFlag.BEST_QUALITY)) {
+            encoder.setVideoQuality(12);
+            encoder.setVideoOption("cq", "12");
+            encoder.setOption("preset", "slow");
+            encoder.setVideoOption("crf", "12");
+            encoder.setOption("tune", "hq");
+            encoder.setOption("bf", "2");
+        }
+
+        // Copy framerate, samplerate and bitrate from the encoder.
+        encoder.setFrameRate(decoder.getFrameRate());
+        encoder.setSampleRate(decoder.getSampleRate());
+        encoder.setVideoBitrate(decoder.getVideoBitrate());
+    }
+
+
+    public static void configureDecoder(final FFmpegFrameGrabber decoder) throws FFmpegFrameGrabber.Exception {
+        decoder.setOption("allowed_extensions", "ALL");
+        decoder.setOption("hwaccel", "cuda");
+        decoder.setVideoBitrate(0);
 
         // Start, to get the codec.
-        grabber.start();
-        final int codec = grabber.getVideoCodec();
-        grabber.stop();
+        decoder.start();
+        final int codec = decoder.getVideoCodec();
+        decoder.stop();
 
         if (codec == avcodec.AV_CODEC_ID_H265) {
-            grabber.setVideoCodecName("hvec_cuvid");
+            decoder.setVideoCodecName("hvec_cuvid");
         } else if (codec == avcodec.AV_CODEC_ID_H264) {
-            grabber.setVideoCodecName("h264_cuvid");
+            decoder.setVideoCodecName("h264_cuvid");
         } else if (codec == avcodec.AV_CODEC_ID_NONE) {
-            grabber.setVideoCodecName("h264_cuvid");
+            decoder.setVideoCodecName("h264_cuvid");
         } else {
             throw new RuntimeException("Supplied video codec not supported.");
         }

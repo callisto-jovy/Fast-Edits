@@ -123,8 +123,9 @@ public class VideoEditor implements Editor {
         }
     }
 
-    private FFmpegFrameRecorder createRecorder(final File outputFile, final EnumSet<EditingFlag> editingFlags, final FFmpegFrameGrabber inputGrabber) throws FFmpegFrameRecorder.Exception {
-        final FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputFile, inputGrabber.getImageWidth(), inputGrabber.getImageHeight(), 2);
+    private FFmpegFrameRecorder getEncoder(final File outputFile, final EnumSet<EditingFlag> editingFlags, final FFmpegFrameGrabber decoder) throws FFmpegFrameRecorder.Exception {
+        final FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputFile, decoder.getImageWidth(), decoder.getImageHeight(), 2);
+
 
         recorder.setFormat("mkv");
 
@@ -155,8 +156,8 @@ public class VideoEditor implements Editor {
 
         recorder.setSampleFormat(avutil.AV_SAMPLE_FMT_FLTP);
         recorder.setAudioCodec(avcodec.AV_CODEC_ID_AC3); // Standard
-        recorder.setFrameRate(inputGrabber.getFrameRate()); //
-        recorder.setSampleRate(inputGrabber.getSampleRate()); // Sample rate from the audio source
+        recorder.setFrameRate(decoder.getFrameRate()); //
+        recorder.setSampleRate(decoder.getSampleRate()); // Sample rate from the audio source
         // Select the "highest" bitrate.
         recorder.setVideoBitrate(0); // max bitrate
 
@@ -260,7 +261,7 @@ public class VideoEditor implements Editor {
             segmentAudioGrabber.start();
 
             // Configure the recorder
-            final FFmpegFrameRecorder recorder = createRecorder(outputFile, editingFlags, videoGrabber);
+            final FFmpegFrameRecorder recorder = getEncoder(outputFile, editingFlags, videoGrabber);
             recorder.setAudioCodec(segmentAudioGrabber.getAudioCodec());
             recorder.setSampleRate(segmentAudioGrabber.getSampleRate());
             recorder.setSampleFormat(segmentAudioGrabber.getSampleFormat());

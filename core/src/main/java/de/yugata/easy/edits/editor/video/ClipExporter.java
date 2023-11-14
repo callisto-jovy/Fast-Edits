@@ -19,6 +19,10 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 
+/**
+ * Encapsulates the clip exporting process.
+ * This module is only for exporting clips.
+ */
 public class ClipExporter {
 
     /**
@@ -77,48 +81,48 @@ public class ClipExporter {
     }
 
 
-    private FFmpegFrameRecorder createRecorder(final File outputFile, final FFmpegFrameGrabber inputGrabber) throws FFmpegFrameRecorder.Exception {
-        final FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputFile, inputGrabber.getImageWidth(), inputGrabber.getImageHeight(), 2);
+    private FFmpegFrameRecorder getEncoder(final File outputFile, final FFmpegFrameGrabber decoder) throws FFmpegFrameRecorder.Exception {
+        final FFmpegFrameRecorder encoder = new FFmpegFrameRecorder(outputFile, decoder.getImageWidth(), decoder.getImageHeight(), 2);
+        FFmpegUtil.configureEncoder(encoder, decoder, editingFlags);
+        encoder.start();
+        return encoder;
+    }
 
-        recorder.setFormat("mkv");
-
-        // Preserve the color range for the HDR video files.
-        // This lets us tone-map the hdr content later on if we want to.
-        //TODO: get this from the grabber
-        if (editingFlags.contains(EditingFlag.WRITE_HDR_OPTIONS)) {
-            recorder.setVideoOption("color_range", "tv");
-            recorder.setVideoOption("colorspace", "bt2020nc");
-            recorder.setVideoOption("color_primaries", "bt2020");
-            recorder.setVideoOption("color_trc", "smpte2084");
+    private FFmpegFrameFilter[] getFilters(final FFmpegFrameGrabber decoder, final FFmpegFrameRecorder encoder) throws FFmpegFrameFilter.Exception {
+        if (!editingFlags.contains(EditingFlag.PROCESS_SEGMENTS)) {
+            return new FFmpegFrameFilter[0];
         }
 
-        // best quality --> Produces big files
-        if (editingFlags.contains(EditingFlag.BEST_QUALITY)) {
-            recorder.setVideoQuality(12);
-            recorder.setVideoOption("cq", "12");
-            recorder.setOption("preset", "slow");
-            //    recorder.setVideoOption("profile", "main10");
-            recorder.setVideoOption("crf", "12");
-            recorder.setOption("tune", "hq");
-            recorder.setOption("bf", "2");
-        }
+        // Filters that might be applied if the flag is enabled.
+        // TODO: Include audio filters
+        final List<Filter> exportVideo = FilterManager.FILTER_MANAGER.getFilters(filter -> filter.getFilterRange() == FilterRange.EXPORT && filter.getFilterType() == FilterType.VIDEO);
 
-        recorder.setFrameRate(inputGrabber.getFrameRate());
-        recorder.setSampleRate(inputGrabber.getSampleRate());
-        recorder.setVideoBitrate(inputGrabber.getVideoBitrate());
+        // I hate this.
+        final EditInfo editInfo = new EditInfoBuilder()
+                .setAspectRatio(decoder.getAspectRatio())
+                .setFrameRate(decoder.getFrameRate())
+                .setImageHeight(decoder.getImageHeight())
+                .setImageWidth(decoder.getImageWidth())
+                .setVideoBitrate(decoder.getVideoBitrate())
+                .setVideoCodec(decoder.getVideoCodec())
+                .setVideoCodecName(decoder.getVideoCodecName())
+                .setPixelFormat(encoder.getPixelFormat())
+                .createEditInfo();
 
-        recorder.start();
-
-        return recorder;
+        return new FFmpegFrameFilter[]{FFmpegUtil.populateVideoFilters(exportVideo, editInfo)};
     }
 
 
-    public void exportClips() {
+    public void exportClips(final ExportResolution resolution) {
         try {
             // Frame grabber to navigate & grab the selected clips.
-            final FFmpegFrameGrabber input = new FFmpegFrameGrabber(inputPath);
-            FFmpegUtil.configureDecoder(input);
-            input.start();
+            final FFmpegFrameGrabber decoder = new FFmpegFrameGrabber(inputPath);
+            FFmpegUtil.configureDecoder(decoder); // base configuration of all encoder / decoder classes.
+            decoder.setAudioStream(1);
+            decoder.setImageWidth((int) (decoder.getImageWidth() * resolution.getRatio()));
+            decoder.setImageHeight((int) (decoder.getImageHeight() * resolution.getRatio()));
+            decoder.start();
+
 
             // List of sorted video clips, so the input grabber only has to move forwards in the stream.
             final List<VideoClip> sortedVideoClips = new ArrayList<>(videoClips);
@@ -132,42 +136,21 @@ public class ClipExporter {
                 final File segmentFile = new File(outputDirectory, String.format("segment %d.mp4", segmentPosition));
 
                 // Recorder for the segment file. Configured in the same way the final recorder is configured, as to not lose quality.
-                final FFmpegFrameRecorder recorder = createRecorder(segmentFile, input);
-
-                final FFmpegFrameFilter[] filters;
-                // Filters that might be applied if the flag is enabled.
-                if (editingFlags.contains(EditingFlag.PROCESS_SEGMENTS)) {
-                    // TODO: Include audio filters
-                    final List<Filter> exportVideo = FilterManager.FILTER_MANAGER.getFilters(filter -> filter.getFilterRange() == FilterRange.EXPORT && filter.getFilterType() == FilterType.VIDEO);
-
-                    // I hate this.
-                    final EditInfo editInfo = new EditInfoBuilder()
-                            .setAspectRatio(input.getAspectRatio())
-                            .setFrameRate(input.getFrameRate())
-                            .setImageHeight(input.getImageHeight())
-                            .setImageWidth(input.getImageWidth())
-                            .setVideoBitrate(input.getVideoBitrate())
-                            .setVideoCodec(input.getVideoCodec())
-                            .setVideoCodecName(input.getVideoCodecName())
-                            .setPixelFormat(recorder.getPixelFormat())
-                            .createEditInfo();
-
-                    filters = new FFmpegFrameFilter[]{FFmpegUtil.populateVideoFilters(exportVideo, editInfo)};
-                } else {
-                    filters = new FFmpegFrameFilter[0];
-                }
+                final FFmpegFrameRecorder encoder = getEncoder(segmentFile, decoder);
+                // Possibly empty array of filter(s) which are processed in a chain if there are any.
+                final FFmpegFrameFilter[] filters = getFilters(decoder, encoder);
 
                 // Navigate to the clip.
-                input.setVideoTimestamp(videoClip.getTimeStamp());
+                decoder.setVideoTimestamp(videoClip.getTimeStamp());
 
                 // The end of the clip in microseconds, e.g. stamp + length
                 final long endMicros = videoClip.getTimeStamp() + videoClip.getLength() + 1500000L; //1.5s (see: https://github.com/bytedeco/javacv/issues/1333)
 
                 Frame frame;
-                while (input.getTimestamp() <= endMicros && (frame = input.grab()) != null) {
+                while (decoder.getTimestamp() <= endMicros && (frame = decoder.grab()) != null) {
                     // See https://github.com/bytedeco/javacv/issues/1333
                     if (frame.timestamp >= videoClip.getTimeStamp() && frame.timestamp <= endMicros)
-                        FFmpegUtil.pushToFilters(frame, recorder, filters);
+                        FFmpegUtil.pushToFilters(frame, encoder, filters);
                 }
 
 
@@ -177,14 +160,41 @@ public class ClipExporter {
                 }
 
                 // Close our local recorder.
-                recorder.close();
+                encoder.close();
             }   /* End video clip loop */
 
-            input.close(); // Close the input grabber, free the resources.
+            decoder.close(); // Close the input grabber, free the resources.
         } catch (FrameGrabber.Exception | FrameFilter.Exception | FrameRecorder.Exception e) {
             e.printStackTrace();
         }
     }
 
+
+    /**
+     * Default method for the video editor. Exports the video clips in full resolution & quality if chosen.
+     */
+    public void exportClips() {
+        exportClips(ExportResolution.FULL);
+    }
+
+
+    // NOTE:: The values are converted to constants anyway. Express them this way for readability
+    public enum ExportResolution {
+        FULL(1),
+        HALF(1 / 2D),
+        QUARTER(1 / 4D),
+        EIGHTH(1 / 8D),
+        SIXTEENTH(1 / 16D);
+
+        private final double ratio;
+
+        ExportResolution(double ratio) {
+            this.ratio = ratio;
+        }
+
+        public double getRatio() {
+            return ratio;
+        }
+    }
 
 }
