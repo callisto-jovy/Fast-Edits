@@ -84,6 +84,8 @@ public class ClipExporter {
     private FFmpegFrameRecorder getEncoder(final File outputFile, final FFmpegFrameGrabber decoder) throws FFmpegFrameRecorder.Exception {
         final FFmpegFrameRecorder encoder = new FFmpegFrameRecorder(outputFile, decoder.getImageWidth(), decoder.getImageHeight(), 2);
         FFmpegUtil.configureEncoder(encoder, decoder, editingFlags);
+        encoder.setVideoCodec(decoder.getVideoCodec()); // Codec copy.
+
         encoder.start();
         return encoder;
     }

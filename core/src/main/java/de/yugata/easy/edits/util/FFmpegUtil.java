@@ -143,7 +143,7 @@ public class FFmpegUtil {
         if (flags.contains(EditingFlag.BEST_QUALITY)) {
             encoder.setVideoQuality(12);
             encoder.setVideoOption("cq", "12");
-            encoder.setOption("preset", "slow");
+            //encoder.setOption("preset", "slow");
             encoder.setVideoOption("crf", "12");
             encoder.setOption("tune", "hq");
             encoder.setOption("bf", "2");
