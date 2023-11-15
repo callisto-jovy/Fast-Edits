@@ -151,9 +151,9 @@ public class ClipExporter {
                 AVPacket packet;
                 while (decoder.getTimestamp() <= endMicros && (packet = decoder.grabPacket()) != null) {
                     // See https://github.com/bytedeco/javacv/issues/1333
-                    if (packet.pts() >= videoClip.getTimeStamp() && packet.pts() <= endMicros) {
-                        encoder.recordPacket(packet);
-                    }
+                    //    if (packet.pts() >= videoClip.getTimeStamp() && packet.pts() <= endMicros) {
+                    encoder.recordPacket(packet);
+                    //  }
                 }
 
 
