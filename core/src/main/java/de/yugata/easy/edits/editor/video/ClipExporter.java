@@ -11,6 +11,7 @@ import de.yugata.easy.edits.filter.FilterManager;
 import de.yugata.easy.edits.filter.FilterRange;
 import de.yugata.easy.edits.filter.FilterType;
 import de.yugata.easy.edits.util.FFmpegUtil;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.javacv.*;
 
 import java.io.File;
@@ -39,7 +40,7 @@ public class ClipExporter {
     private final String inputPath;
 
     /**
-     * EnumSet of flags for the exporting process.#
+     * EnumSet of flags for the exporting process.
      */
     private final EnumSet<EditingFlag> editingFlags;
 
@@ -86,7 +87,7 @@ public class ClipExporter {
         FFmpegUtil.configureEncoder(encoder, decoder, editingFlags);
         encoder.setVideoCodec(decoder.getVideoCodec()); // Codec copy.
 
-        encoder.start();
+        encoder.start(decoder.getFormatContext());
         return encoder;
     }
 
@@ -113,7 +114,6 @@ public class ClipExporter {
 
         return new FFmpegFrameFilter[]{FFmpegUtil.populateVideoFilters(exportVideo, editInfo)};
     }
-
 
     public void exportClips(final ExportResolution resolution) {
         try {
@@ -148,11 +148,12 @@ public class ClipExporter {
                 // The end of the clip in microseconds, e.g. stamp + length
                 final long endMicros = videoClip.getTimeStamp() + videoClip.getLength() + 1500000L; //1.5s (see: https://github.com/bytedeco/javacv/issues/1333)
 
-                Frame frame;
-                while (decoder.getTimestamp() <= endMicros && (frame = decoder.grab()) != null) {
+                AVPacket packet;
+                while (decoder.getTimestamp() <= endMicros && (packet = decoder.grabPacket()) != null) {
                     // See https://github.com/bytedeco/javacv/issues/1333
-                    if (frame.timestamp >= videoClip.getTimeStamp() && frame.timestamp <= endMicros)
-                        FFmpegUtil.pushToFilters(frame, encoder, filters);
+                    if (packet.pts() >= videoClip.getTimeStamp() && packet.pts() <= endMicros) {
+                        encoder.recordPacket(packet);
+                    }
                 }
 
 
